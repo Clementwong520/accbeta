@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>光遇文案馆 · ClementWong</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        :root {
+            --bg: #0b0b12;
+            --card: rgba(22, 23, 38, 0.75);
+            --gold: #d9b382;
+            --text: #e8e6f0;
+            --sub: #9da0c0;
+            --radius: 1.2rem;
+        }
+        .theme-light {
+            --bg: #f5f0e8;
+            --card: rgba(255, 250, 245, 0.9);
+            --text: #2e2b28;
+            --sub: #6b5e53;
+        }
+        .theme-warm {
+            --bg: #2a1f1a;
+            --card: rgba(50, 38, 30, 0.85);
+            --gold: #e4b98b;
+            --text: #f5e7d3;
+            --sub: #b8a48e;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            background: var(--bg);
+            font-family: 'PingFang SC','Microsoft YaHei',sans-serif;
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 0 0 80px 0;
+            transition: background 0.3s, color 0.3s;
+        }
+        .app { width:100%; max-width:520px; padding:0.8rem; display:flex; flex-direction:column; gap:0.8rem; }
+        header { display:flex; justify-content:space-between; align-items:center; padding:0.3rem 0; }
+        h1 { font-size:1.5rem; font-weight:400; letter-spacing:2px; color:var(--gold); display:flex; align-items:center; gap:0.2rem; }
+        .bottom-nav {
+            display:flex; background:var(--card); backdrop-filter:blur(15px); border-radius:2rem;
+            padding:0.2rem; position:fixed; bottom:12px; left:50%; transform:translateX(-50%);
+            z-index:100; border:1px solid rgba(255,255,255,0.08); width:calc(100% - 1.6rem); max-width:480px;
+        }
+        .nav-btn {
+            flex:1; background:transparent; border:none; color:var(--sub); padding:0.6rem 0.2rem;
+            border-radius:2rem; font-weight:600; font-size:0.75rem; cursor:pointer; transition:0.25s;
+            display:flex; flex-direction:column; align-items:center; gap:1px;
+        }
+        .nav-btn.active { background:var(--gold); color:#0a0a14; }
+        .page { display:none; flex-direction:column; gap:0.8rem; }
+        .page.active { display:flex; }
+        .card {
+            background:var(--card); backdrop-filter:blur(12px); border-radius:var(--radius);
+            padding:1rem; border:1px solid rgba(255,255,255,0.07); box-shadow:0 8px 20px rgba(0,0,0,0.3);
+        }
+        h3 { font-weight:400; color:var(--gold); margin-bottom:0.7rem; font-size:1rem; letter-spacing:1px; }
+        .flex-row { display:flex; gap:0.4rem; align-items:center; flex-wrap:wrap; }
+        input, textarea, select {
+            background:rgba(10,10,18,0.6); border:1px solid rgba(255,255,255,0.12); border-radius:0.6rem;
+            padding:0.55rem 0.7rem; color:var(--text); font-size:0.85rem; outline:none;
+            font-family:inherit; width:100%; margin-bottom:0.6rem; resize:vertical;
+        }
+        textarea { min-height:70px; }
+        .btn {
+            background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15);
+            padding:0.5rem 1rem; border-radius:2rem; font-weight:600; color:var(--text); cursor:pointer;
+            transition:0.25s; font-size:0.8rem; display:inline-flex; align-items:center; gap:0.2rem;
+        }
+        .btn-primary { background:var(--gold); border-color:var(--gold); color:#0a0a14; }
+        .btn-sm { padding:0.25rem 0.7rem; font-size:0.7rem; }
+        .tag-wrap {
+            display:flex; flex-wrap:wrap; gap:0.3rem; align-items:center;
+            background:rgba(10,10,18,0.6); border:1px solid rgba(255,255,255,0.12);
+            border-radius:0.6rem; padding:0.3rem; min-height:2.5rem; margin-bottom:0.6rem;
+        }
+        .tag {
+            background:rgba(217,179,130,0.15); color:#f0dbb0; padding:0.15rem 0.6rem;
+            border-radius:1rem; font-size:0.75rem; display:flex; align-items:center; gap:0.2rem;
+        }
+        .preview-box {
+            background:rgba(12,12,23,0.9); border-radius:0.8rem; padding:1rem;
+            white-space:pre-wrap; font-family:'Noto Serif SC','PingFang SC',serif;
+            line-height:1.6; font-size:0.85rem; min-height:150px; position:relative; word-break:break-word;
+        }
+        .wm-preview { position:absolute; bottom:8px; right:12px; color:rgba(217,179,130,0.3); font-style:italic; font-size:0.7rem; }
+        .symbol-grid { display:flex; flex-wrap:wrap; gap:0.2rem; margin:0.4rem 0; }
+        .sym-btn { background:rgba(255,255,255,0.04); border:none; color:var(--text); padding:0.2rem 0.5rem; border-radius:0.4rem; cursor:pointer; font-size:1rem; }
+        .divider-preview { font-size:0.75rem; color:var(--sub); margin:0.2rem 0; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .hidden-file { display:none; }
+        .mode-toggle { font-size:0.7rem; color:var(--sub); cursor:pointer; margin-left:0.3rem; }
+        .color-input { width:30px; height:28px; border:none; padding:0; background:transparent; }
+        .slider-row { display:flex; align-items:center; gap:0.3rem; margin-bottom:0.4rem; }
+    </style>
+</head>
+<body>
+<div class="app">
+    <header>
+        <h1>𖤓 光遇文案馆</h1>
+        <button class="btn btn-sm" id="themeToggle">🎨</button>
+    </header>
+
+    <!-- 账号管理页 -->
+    <div id="pageAccounts" class="page active">
+        <div class="card">
+            <div class="flex-row" style="justify-content:space-between;">
+                <h3>📁 账号列表</h3>
+                <div class="flex-row">
+                    <button class="btn btn-sm" id="searchToggle">🔍</button>
+                    <button class="btn btn-sm" id="sortBtn">⇅</button>
+                </div>
+            </div>
+            <input type="text" id="searchInput" placeholder="搜索编号或描述..." style="display:none;">
+            <div id="accountList" style="max-height:220px; overflow-y:auto;"></div>
+            <div class="flex-row" style="margin-top:0.4rem;">
+                <button class="btn" id="newAccountBtn">＋ 新建</button>
+                <button class="btn btn-sm" id="batchExportBtn">📦 批量导出</button>
+            </div>
+        </div>
+        <div class="card">
+            <h3>✎ 编辑资料</h3>
+            <input id="eId" placeholder="编号">
+            <input id="eDesc" placeholder="描述">
+            <input id="ePrice" placeholder="价格">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.4rem;">
+                <input id="eGrad" placeholder="毕业季节">
+                <input id="eUngrad" placeholder="未毕业季节">
+            </div>
+            <div class="flex-row" style="justify-content:space-between;">
+                <label>🎁 礼包</label>
+                <span class="mode-toggle" data-target="gift">切换标签/文本</span>
+            </div>
+            <div class="tag-wrap" id="giftTags"></div>
+            <textarea id="eGiftText" style="display:none;" placeholder="逗号分隔"></textarea>
+            <div class="flex-row" style="justify-content:space-between;">
+                <label>🏅 徽章</label>
+                <span class="mode-toggle" data-target="badge">切换标签/文本</span>
+            </div>
+            <div class="tag-wrap" id="badgeTags"></div>
+            <textarea id="eBadgeText" style="display:none;" placeholder="逗号分隔"></textarea>
+            <input id="eRes" placeholder="资源 蜡/心/红">
+            <input id="eHeightR" placeholder="身高范围">
+            <input id="eHeightNow" placeholder="目前身高">
+            <input id="eInfo" placeholder="账号备注">
+            <div id="customFieldsContainer"></div>
+            <button class="btn btn-sm" id="addCustomFieldBtn">➕ 自定义字段</button>
+            <div class="flex-row" style="margin-top:0.5rem;">
+                <button class="btn btn-primary" id="saveAccountBtn" style="flex:1;">💾 保存</button>
+                <button class="btn" id="undoBtn">↩ 撤销</button>
+            </div>
+        </div>
+        <div class="card">
+            <h3>𖧷 文案预览</h3>
+            <div class="preview-box" id="previewBox"></div>
+            <div class="flex-row" style="margin-top:0.4rem;">
+                <button class="btn" id="copyPreviewBtn">📋 复制</button>
+                <button class="btn btn-primary" id="exportPreviewBtn">🖼️ 导出图片</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模板设计页 -->
+    <div id="pageTemplate" class="page">
+        <div class="card">
+            <h3>✒️ 文案模板</h3>
+            <textarea id="templateText" style="height:160px;"></textarea>
+            <div class="symbol-grid" id="symbolPanel"></div>
+            <div class="flex-row">
+                <input id="newSymbolInput" placeholder="添加符号" style="width:80px;">
+                <button class="btn btn-sm" id="addSymbolBtn">收藏</button>
+            </div>
+            <label>装饰线 (点击插入)</label>
+            <div id="dividerList"></div>
+            <details style="margin-top:0.6rem;">
+                <summary>⚙️ 条件显示 & Emoji替换</summary>
+                <div><label><input type="checkbox" id="condUngrad" checked> 显示未毕业行</label></div>
+                <div><label><input type="checkbox" id="condPrice" checked> 显示价格(空显示“议价”)</label></div>
+                <div class="flex-row" style="margin-top:0.3rem;">
+                    <input id="emojiKey" placeholder="关键词" style="flex:1;">
+                    <input id="emojiVal" placeholder="替换为" style="flex:1;">
+                    <button class="btn btn-sm" id="addEmojiBtn">＋</button>
+                </div>
+                <div id="emojiRulesList" style="font-size:0.75rem;"></div>
+            </details>
+            <button class="btn btn-primary" id="saveTemplateBtn" style="width:100%; margin-top:0.6rem;">💾 保存模板</button>
+            <button class="btn" id="exportTemplateBtn" style="width:100%; margin-top:0.3rem;">📤 导出模板文件</button>
+        </div>
+    </div>
+
+    <!-- 导出设置页 -->
+    <div id="pageExport" class="page">
+        <div class="card">
+            <h3>🖼️ 导出设置</h3>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.4rem;">
+                <input id="expWidth" type="number" placeholder="宽度(px)" value="750">
+                <input id="expHeight" type="number" placeholder="高度(0=自动)" value="0">
+            </div>
+            <label>背景类型</label>
+            <select id="bgType">
+                <option value="default">深色预设</option>
+                <option value="color">纯色</option>
+                <option value="image">上传图片</option>
+            </select>
+            <div id="bgColorRow" style="display:none;"><input type="color" id="bgColor" value="#0b0b12"></div>
+            <div id="bgImageRow" style="display:none;">
+                <input type="file" id="bgFileInput" accept="image/*">
+                <select id="bgFill">
+                    <option value="contain">原比例居中</option>
+                    <option value="cover">裁剪填充</option>
+                    <option value="tile">平铺</option>
+                </select>
+                <label>两侧填充色</label>
+                <input type="color" id="bgSideColor" value="#0b0b12">
+                <div id="bgPreview" style="height:40px; background-size:contain; background-repeat:no-repeat; margin:0.2rem 0;"></div>
+            </div>
+            <label>滤镜</label>
+            <select id="bgFilter">
+                <option value="none">无</option>
+                <option value="blur(3px)">模糊</option>
+                <option value="brightness(0.6)">暗化</option>
+                <option value="contrast(1.4)">高对比</option>
+            </select>
+            <label>导出格式</label>
+            <select id="exportFormat">
+                <option value="png">PNG</option>
+                <option value="jpeg">JPEG</option>
+            </select>
+            <div id="jpegQualityRow" style="display:none;"><input id="jpegQuality" type="range" min="0.5" max="1" step="0.05" value="0.9"></div>
+            <h4>💧 水印</h4>
+            <input id="wmText" placeholder="水印文字" value="ClementWong">
+            <select id="wmFontSelect">
+                <option>PingFang SC</option><option>Noto Serif SC</option><option>ZCOOL XiaoWei</option><option>Ma Shan Zheng</option>
+            </select>
+            <div class="flex-row">
+                <input type="color" id="wmColor" value="#d9b382" class="color-input">
+                <label>透明度</label><input type="range" id="wmOpacity" min="0.1" max="1" step="0.05" value="0.35">
+            </div>
+            <div class="flex-row">
+                <input id="wmSize" type="number" value="22" placeholder="字号">
+                <input id="wmRotate" type="number" value="-3" placeholder="旋转°">
+            </div>
+            <select id="wmMode">
+                <option value="corner">角落</option>
+                <option value="tile">平铺</option>
+                <option value="bar">底部栏</option>
+                <option value="image">图片水印</option>
+            </select>
+            <div id="wmImageUpload" style="display:none;"><input type="file" id="wmFileInput" accept="image/*"></div>
+            <div id="tileOptions" style="display:none;">
+                <label>平铺间距(px)</label><input id="tileSpacing" type="number" value="80">
+            </div>
+            <label>自定义字体URL</label>
+            <input id="customFontUrl" placeholder="https://fonts.googleapis.com/css2?...">
+            <label>上传字体文件 (ttf/otf/woff2)</label>
+            <input type="file" id="fontFileInput" accept=".ttf,.otf,.woff2">
+            <button class="btn btn-primary" id="saveExportSettingsBtn" style="width:100%; margin-top:0.6rem;">💾 保存导出设定</button>
+        </div>
+        <div class="card">
+            <h3>📦 数据与历史</h3>
+            <button class="btn" id="exportJsonBtn">📤 导出全部数据</button>
+            <button class="btn" id="importJsonBtn">📥 导入数据</button>
+            <input type="file" id="importJsonFile" accept=".json" class="hidden-file">
+            <details style="margin-top:0.5rem;">
+                <summary>📜 版本历史</summary>
+                <div id="historyList" style="font-size:0.75rem; max-height:200px; overflow-y:auto;"></div>
+            </details>
+        </div>
+    </div>
+</div>
+
+<!-- 底部导航 -->
+<nav class="bottom-nav">
+    <button class="nav-btn active" data-page="accounts">📋 账号</button>
+    <button class="nav-btn" data-page="template">✒️ 模板</button>
+    <button class="nav-btn" data-page="export">🖼️ 导出</button>
+</nav>
+
+<script>
+(() => {
+    // ===================== 存储与核心数据 =====================
+    const ACC_KEY = 'sky_v5_acc', SET_KEY = 'sky_v5_set', HIST_KEY = 'sky_v5_hist';
+    let accounts = [], currentId = null;
+    let settings = {
+        template: `♤ › 编号：{id}  {desc}\n⚘ › 价格：{price}\n\n𖧷 季节毕业：{grad}{ungrad}\n\n♡ › 礼包：\n{gifts:⸝}\n\n⚝ › 徽章：\n{badges:⸝}\n\n⭔› 资源：{res}  身高：{heightRange} 现{heightNow}\n    {info}{custom}\n\n─── ☁文案为辅 · 影片为主☁ ───\n  设计：ClementWong`,
+        condUngrad: true, condPrice: true,
+        emojiRules: [],
+        expWidth: 750, expHeight: 0,
+        bgType: 'default', bgColor: '#0b0b12', bgImage: null, bgFill: 'contain', bgSideColor: '#0b0b12',
+        bgFilter: 'none', exportFormat: 'png', jpegQuality: 0.9,
+        wmText: 'ClementWong', wmFont: 'PingFang SC', wmColor: '#d9b382', wmOpacity: 0.35,
+        wmSize: 22, wmRotate: -3, wmMode: 'corner', wmImage: null, tileSpacing: 80,
+        customFontUrl: '', uploadedFont: null, uploadedFontName: '',
+        theme: 'dark',
+        favSymbols: ['𖧷','♤','⚘','⸝','┊','𖡡','𖤓'],
+        dividers: ['─── ☁文案为辅 · 影片为主☁ ───  设计：ClementWong']
+    };
+    let history = [];
+    let undoStack = [];
+
+    const $ = s => document.querySelector(s);
+    const pages = { accounts: $('#pageAccounts'), template: $('#pageTemplate'), export: $('#pageExport') };
+
+    function loadData() {
+        try {
+            accounts = JSON.parse(localStorage.getItem(ACC_KEY)) || [];
+            if (!accounts.length) {
+                accounts.push({
+                    id:'DYX2989', desc:'极光断季礼包号', price:'660',
+                    grad:'织光 狂欢', ungrad:'', gifts:['海洋裙','星月头饰'],
+                    badges:['矮人','鬼蝠'], res:'175/55/32', heightRange:'1.56-13.56',
+                    heightNow:'1.72', info:'ID二任', custom:{}
+                });
+            }
+            Object.assign(settings, JSON.parse(localStorage.getItem(SET_KEY) || '{}'));
+            history = JSON.parse(localStorage.getItem(HIST_KEY)) || [];
+            currentId = accounts[0]?.id;
+        } catch(e) {}
+    }
+    function saveAccounts() { localStorage.setItem(ACC_KEY, JSON.stringify(accounts)); }
+    function saveSettings() { localStorage.setItem(SET_KEY, JSON.stringify(settings)); }
+    function saveHistory() { localStorage.setItem(HIST_KEY, JSON.stringify(history.slice(-50))); }
+    function pushUndo() {
+        const acc = accounts.find(a=>a.id===currentId);
+        if (acc) undoStack.push(JSON.stringify(acc));
+    }
+
+    // ===================== 页面切换 =====================
+    function switchPage(name) {
+        Object.values(pages).forEach(p => p.classList.remove('active'));
+        pages[name].classList.add('active');
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        document.querySelector(`.nav-btn[data-page="${name}"]`).classList.add('active');
+    }
+    document.querySelectorAll('.nav-btn').forEach(b => b.addEventListener('click', ()=> switchPage(b.dataset.page)));
+
+    // ===================== 账号列表 =====================
+    function renderAccountList(filter='') {
+        let list = accounts.filter(a => a.id.includes(filter) || (a.desc||'').includes(filter));
+        $('#accountList').innerHTML = list.map(a => `
+            <div class="flex-row" style="justify-content:space-between; padding:0.4rem; background:rgba(0,0,0,0.2); border-radius:0.5rem; margin-bottom:0.2rem; ${a.id===currentId?'border:1px solid var(--gold)':''}">
+                <span style="cursor:pointer;" class="account-select" data-id="${a.id}"><strong>${a.id}</strong> ${a.desc||''}</span>
+                <button class="btn btn-sm delete-account-btn" data-id="${a.id}">🗑</button>
+            </div>
+        `).join('');
+    }
+    $('#accountList').addEventListener('click', (e) => {
+        if (e.target.classList.contains('delete-account-btn')) {
+            const id = e.target.dataset.id;
+            if (accounts.length <= 1) return;
+            accounts = accounts.filter(a => a.id !== id);
+            if (currentId === id) currentId = accounts[0]?.id;
+            saveAccounts(); renderAccountList(); loadCurrentAccount();
+            return;
+        }
+        const sel = e.target.closest('.account-select');
+        if (sel) {
+            currentId = sel.dataset.id;
+            renderAccountList();
+            loadCurrentAccount();
+        }
+    });
+    $('#newAccountBtn').addEventListener('click', () => {
+        const id = prompt('新账号编号：');
+        if (!id || accounts.some(a=>a.id===id)) return;
+        pushUndo();
+        accounts.push({ id, desc:'', price:'', grad:'', ungrad:'', gifts:[], badges:[], res:'', heightRange:'', heightNow:'', info:'', custom:{} });
+        currentId = id; saveAccounts(); renderAccountList(); loadCurrentAccount();
+    });
+    $('#searchToggle').addEventListener('click', ()=>{
+        const inp = $('#searchInput');
+        inp.style.display = inp.style.display==='none'?'block':'none';
+    });
+    $('#searchInput').addEventListener('input', (e)=> renderAccountList(e.target.value));
+    $('#sortBtn').addEventListener('click', ()=>{
+        accounts.sort((a,b)=> a.id.localeCompare(b.id));
+        saveAccounts(); renderAccountList();
+    });
+
+    // ===================== 编辑表单 =====================
+    let currentGifts=[], currentBadges=[];
+    let giftMode='tag', badgeMode='tag';
+    function loadCurrentAccount() {
+        const acc = accounts.find(a=>a.id===currentId);
+        if (!acc) return;
+        $('#eId').value = acc.id||''; $('#eDesc').value = acc.desc||'';
+        $('#ePrice').value = acc.price||''; $('#eGrad').value = acc.grad||'';
+        $('#eUngrad').value = acc.ungrad||''; $('#eRes').value = acc.res||'';
+        $('#eHeightR').value = acc.heightRange||''; $('#eHeightNow').value = acc.heightNow||'';
+        $('#eInfo').value = acc.info||'';
+        currentGifts = Array.isArray(acc.gifts)?[...acc.gifts]:[];
+        currentBadges = Array.isArray(acc.badges)?[...acc.badges]:[];
+        giftMode = acc._giftMode || 'tag'; badgeMode = acc._badgeMode || 'tag';
+        renderGiftUI(); renderBadgeUI();
+        customFields = Object.entries(acc.custom||{}).map(([k,v])=>({name:k, value:v}));
+        renderCustomFields();
+        updatePreview();
+    }
+    function renderGiftUI() {
+        const area = $('#giftTags');
+        const textarea = $('#eGiftText');
+        if (giftMode === 'tag') {
+            textarea.style.display = 'none';
+            area.style.display = 'flex';
+            area.innerHTML = currentGifts.map((g,i)=>`<span class="tag">${g} <span class="remove-tag" data-type="gift" data-idx="${i}">×</span></span>`).join('') +
+                `<input class="tag-input" placeholder="添加礼包..." id="giftInput">`;
+            const inp = document.getElementById('giftInput');
+            if(inp) inp.addEventListener('keydown', (e)=>{
+                if(e.key==='Enter' && e.target.value.trim()){
+                    currentGifts.push(e.target.value.trim()); renderGiftUI(); e.preventDefault();
+                }
+            });
+        } else {
+            area.style.display = 'none';
+            textarea.style.display = 'block';
+            textarea.value = currentGifts.join(', ');
+            textarea.oninput = ()=> { currentGifts = textarea.value.split(/[,，、]+/).map(s=>s.trim()).filter(s=>s); };
+        }
+    }
+    function renderBadgeUI() {
+        const area = $('#badgeTags');
+        const textarea = $('#eBadgeText');
+        if (badgeMode === 'tag') {
+            textarea.style.display = 'none';
+            area.style.display = 'flex';
+            area.innerHTML = currentBadges.map((b,i)=>`<span class="tag">${b} <span class="remove-tag" data-type="badge" data-idx="${i}">×</span></span>`).join('') +
+                `<input class="tag-input" placeholder="添加徽章..." id="badgeInput">`;
+            const inp = document.getElementById('badgeInput');
+            if(inp) inp.addEventListener('keydown', (e)=>{
+                if(e.key==='Enter' && e.target.value.trim()){
+                    currentBadges.push(e.target.value.trim()); renderBadgeUI(); e.preventDefault();
+                }
+            });
+        } else {
+            area.style.display = 'none';
+            textarea.style.display = 'block';
+            textarea.value = currentBadges.join(', ');
+            textarea.oninput = ()=> { currentBadges = textarea.value.split(/[,，、]+/).map(s=>s.trim()).filter(s=>s); };
+        }
+    }
+    document.addEventListener('click', (e)=>{
+        if(e.target.classList.contains('mode-toggle')){
+            const target = e.target.dataset.target;
+            if(target==='gift'){ giftMode = giftMode==='tag'?'text':'tag'; renderGiftUI(); }
+            else if(target==='badge'){ badgeMode = badgeMode==='tag'?'text':'tag'; renderBadgeUI(); }
+        }
+        if(e.target.classList.contains('remove-tag')){
+            const type=e.target.dataset.type, idx=parseInt(e.target.dataset.idx);
+            if(type==='gift'){ currentGifts.splice(idx,1); renderGiftUI(); }
+            else { currentBadges.splice(idx,1); renderBadgeUI(); }
+        }
+    });
+    let customFields = [];
+    function renderCustomFields() {
+        const container = $('#customFieldsContainer');
+        container.innerHTML = customFields.map((f,i)=>`
+            <div class="flex-row" style="margin-bottom:0.2rem;">
+                <input value="${f.name}" placeholder="字段名" class="cname" data-idx="${i}" style="flex:1;">
+                <input value="${f.value}" placeholder="值" class="cval" data-idx="${i}" style="flex:2;">
+                <button class="btn btn-sm remove-custom" data-idx="${i}">×</button>
+            </div>
+        `).join('');
+    }
+    $('#addCustomFieldBtn').addEventListener('click', ()=>{
+        customFields.push({name:'', value:''}); renderCustomFields();
+    });
+    document.addEventListener('click', (e)=>{
+        if(e.target.classList.contains('remove-custom')){
+            customFields.splice(parseInt(e.target.dataset.idx),1); renderCustomFields();
+        }
+    });
+    function collectCustomFields() {
+        const custom = {};
+        document.querySelectorAll('.cname').forEach((inp,i)=>{
+            const name = inp.value.trim();
+            const val = document.querySelectorAll('.cval')[i]?.value || '';
+            if(name) custom[name] = val;
+        });
+        return custom;
+    }
+    $('#saveAccountBtn').addEventListener('click', ()=>{
+        pushUndo();
+        const acc = accounts.find(a=>a.id===currentId);
+        if(!acc) return;
+        acc.id = $('#eId').value.trim(); acc.desc = $('#eDesc').value.trim();
+        acc.price = $('#ePrice').value.trim(); acc.grad = $('#eGrad').value.trim();
+        acc.ungrad = $('#eUngrad').value.trim();
+        acc.gifts = [...currentGifts]; acc.badges = [...currentBadges];
+        acc.res = $('#eRes').value.trim(); acc.heightRange = $('#eHeightR').value.trim();
+        acc.heightNow = $('#eHeightNow').value.trim(); acc.info = $('#eInfo').value.trim();
+        acc.custom = collectCustomFields();
+        acc._giftMode = giftMode; acc._badgeMode = badgeMode;
+        if(acc.id !== currentId) currentId = acc.id;
+        saveAccounts(); renderAccountList(); updatePreview();
+        addHistory(`保存账号 ${acc.id}`);
+    });
+    $('#undoBtn').addEventListener('click', ()=>{
+        if(undoStack.length===0) return;
+        const json = undoStack.pop();
+        const acc = JSON.parse(json);
+        const idx = accounts.findIndex(a=>a.id===acc.id);
+        if(idx!==-1) accounts[idx] = acc;
+        currentId = acc.id;
+        saveAccounts(); renderAccountList(); loadCurrentAccount();
+    });
+
+    // ===================== 文案生成 =====================
+    function applyEmojiRules(text) {
+        let result = text;
+        (settings.emojiRules||[]).forEach(rule => {
+            result = result.split(rule.key).join(rule.val);
+        });
+        return result;
+    }
+    function formatListPrefix(list, prefix='⸝') {
+        if(!list||list.length===0) return '无';
+        return list.map(item => prefix + item).join('\n');
+    }
+    function generateText(acc) {
+        if(!acc) return '';
+        let tpl = settings.template;
+        const giftsFmt = formatListPrefix(Array.isArray(acc.gifts)?acc.gifts:[], '⸝');
+        const badgesFmt = formatListPrefix(Array.isArray(acc.badges)?acc.badges:[], '⸝');
+        const ungradStr = settings.condUngrad && acc.ungrad ? ` (未毕业：${acc.ungrad})` : '';
+        const priceStr = settings.condPrice ? (acc.price || '议价') : '';
+        let customStr = '';
+        if(acc.custom) {
+            Object.entries(acc.custom).forEach(([k,v]) => { if(v) customStr += `\n    ${k}：${v}`; });
+        }
+        let text = tpl
+            .replace(/{id}/g, acc.id).replace(/{desc}/g, acc.desc)
+            .replace(/{price}/g, priceStr)
+            .replace(/{grad}/g, acc.grad).replace(/{ungrad}/g, ungradStr)
+            .replace(/{gifts:⸝}/g, giftsFmt).replace(/{badges:⸝}/g, badgesFmt)
+            .replace(/{res}/g, acc.res).replace(/{heightRange}/g, acc.heightRange)
+            .replace(/{heightNow}/g, acc.heightNow).replace(/{info}/g, acc.info)
+            .replace(/{custom}/g, customStr);
+        return applyEmojiRules(text);
+    }
+    function updatePreview() {
+        const acc = accounts.find(a=>a.id===currentId);
+        const text = acc ? generateText(acc) : '暂无账号';
+        $('#previewBox').textContent = text;
+    }
+
+    // ===================== 导出图片 =====================
+    async function exportImage(accId = currentId) {
+        const acc = accounts.find(a=>a.id===accId);
+        if(!acc) return;
+        const text = generateText(acc);
+        const container = document.createElement('div');
+        container.style.position = 'fixed'; container.style.left = '-9999px';
+        container.style.width = (settings.expWidth||750)+'px';
+        if(settings.expHeight>0) container.style.height = settings.expHeight+'px';
+        container.style.padding = '2rem'; container.style.overflow = 'hidden';
+        container.style.fontFamily = "'Noto Serif SC','PingFang SC',sans-serif";
+        container.style.color = '#f0f0f0'; container.style.whiteSpace = 'pre-wrap';
+        container.style.lineHeight = '1.7'; container.style.fontSize = '1rem';
+        if(settings.bgType==='image' && settings.bgImage){
+            container.style.backgroundImage = `url(${settings.bgImage})`;
+            container.style.backgroundSize = settings.bgFill||'contain';
+            container.style.backgroundRepeat = settings.bgFill==='tile'?'repeat':'no-repeat';
+            container.style.backgroundPosition = 'center';
+            container.style.backgroundColor = settings.bgSideColor||'#0b0b12';
+        } else if(settings.bgType==='color'){
+            container.style.background = settings.bgColor||'#0b0b12';
+        } else {
+            container.style.background = 'radial-gradient(ellipse at 20% 10%, #1a1c33, #0b0b12 80%)';
+        }
+        if(settings.bgFilter!=='none') container.style.filter = settings.bgFilter;
+        container.innerHTML = `<div style="position:relative; z-index:1;">${text.replace(/\n/g,'<br>')}</div>`;
+        // 水印
+        if(settings.wmMode==='image' && settings.wmImage){
+            const img = document.createElement('img');
+            img.src = settings.wmImage; img.style.position='absolute'; img.style.bottom='10px'; img.style.right='10px';
+            img.style.width='60px'; img.style.opacity = settings.wmOpacity; container.appendChild(img);
+        } else {
+            const wm = document.createElement('div');
+            wm.style.position='absolute'; wm.style.zIndex='10';
+            wm.style.color = settings.wmColor; wm.style.opacity = settings.wmOpacity;
+            wm.style.fontSize = settings.wmSize+'px'; wm.style.fontFamily = settings.wmFont;
+            if(settings.wmMode==='tile'){
+                wm.style.width='100%'; wm.style.height='100%'; wm.style.top='0'; wm.style.left='0';
+                wm.style.display='flex'; wm.style.flexWrap='wrap';
+                const spacing = settings.tileSpacing||80;
+                const col = Math.floor(parseInt(container.style.width)/spacing)+1;
+                const row = Math.floor((settings.expHeight||800)/spacing)+1;
+                for(let i=0; i<col*row; i++){
+                    const span = document.createElement('span');
+                    span.textContent = settings.wmText;
+                    span.style.margin = `${spacing/4}px`;
+                    span.style.transform = `rotate(${Math.random()*6-3}deg)`;
+                    span.style.opacity = settings.wmOpacity*(0.8+Math.random()*0.4);
+                    wm.appendChild(span);
+                }
+            } else if(settings.wmMode==='bar'){
+                wm.style.bottom='0'; wm.style.left='0'; wm.style.width='100%';
+                wm.style.background='rgba(0,0,0,0.5)'; wm.style.padding='6px';
+                wm.style.textAlign='center'; wm.textContent = settings.wmText;
+            } else {
+                wm.style.bottom='15px'; wm.style.right='20px';
+                wm.style.transform = `rotate(${settings.wmRotate}deg)`; wm.textContent = settings.wmText;
+            }
+            container.appendChild(wm);
+        }
+        document.body.appendChild(container);
+        if(settings.customFontUrl){
+            const link = document.createElement('link');
+            link.rel='stylesheet'; link.href=settings.customFontUrl; document.head.appendChild(link);
+        }
+        if(settings.uploadedFont){
+            try {
+                const font = new FontFace(settings.uploadedFontName, `url(${settings.uploadedFont})`);
+                await font.load(); document.fonts.add(font);
+                container.style.fontFamily = settings.uploadedFontName;
+            } catch(e){}
+        }
+        await new Promise(r => setTimeout(r, 500));
+        try {
+            const canvas = await html2canvas(container, { scale:3, backgroundColor:null, allowTaint:true, useCORS:true });
+            const format = settings.exportFormat==='jpeg'?'image/jpeg':'image/png';
+            const quality = settings.exportFormat==='jpeg'?settings.jpegQuality:undefined;
+            const blob = await new Promise(r => canvas.toBlob(r, format, quality));
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href=url; a.download=`光遇_${acc.id}_ClementWong.${settings.exportFormat==='jpeg'?'jpg':'png'}`; a.click();
+            addHistory(`导出图片: ${acc.id}`);
+        } catch(e){ alert('导出失败'); }
+        finally { document.body.removeChild(container); }
+    }
+
+    $('#exportPreviewBtn').addEventListener('click', ()=>exportImage());
+    $('#copyPreviewBtn').addEventListener('click', ()=>{
+        navigator.clipboard.writeText($('#previewBox').textContent).then(()=>alert('已复制'));
+    });
+
+    // 批量导出（使用JSZip）
+    $('#batchExportBtn').addEventListener('click', async ()=>{
+        if(accounts.length===0) return;
+        const zip = new JSZip();
+        for(let acc of accounts){
+            const text = generateText(acc);
+            const container = document.createElement('div');
+            container.style.position = 'fixed'; container.style.left = '-9999px';
+            container.style.width = (settings.expWidth||750)+'px';
+            container.style.padding = '2rem'; container.style.fontFamily = "'Noto Serif SC','PingFang SC',sans-serif";
+            container.style.color = '#f0f0f0'; container.style.whiteSpace = 'pre-wrap';
+            container.style.lineHeight = '1.7'; container.style.background = '#0b0b12';
+            container.innerHTML = text.replace(/\n/g,'<br>');
+            document.body.appendChild(container);
+            const canvas = await html2canvas(container, { scale:2, backgroundColor:'#0b0b12' });
+            document.body.removeChild(container);
+            const blob = await new Promise(r=>canvas.toBlob(r, 'image/png'));
+            zip.file(`${acc.id}.png`, blob);
+        }
+        const content = await zip.generateAsync({type:'blob'});
+        saveAs(content, '光遇账号合集_ClementWong.zip');
+        addHistory('批量导出所有账号');
+    });
+
+    // ===================== 模板设置 =====================
+    $('#templateText').value = settings.template;
+    $('#condUngrad').checked = settings.condUngrad;
+    $('#condPrice').checked = settings.condPrice;
+    function renderSymbolPanel() {
+        const panel = $('#symbolPanel');
+        panel.innerHTML = settings.favSymbols.map(s => `<button class="sym-btn insert-sym">${s}</button>`).join('');
+    }
+    renderSymbolPanel();
+    $('#symbolPanel').addEventListener('click', (e)=>{
+        if(e.target.classList.contains('insert-sym')){
+            const sym = e.target.textContent;
+            const ta = $('#templateText');
+            const start = ta.selectionStart, end = ta.selectionEnd;
+            ta.value = ta.value.substring(0,start)+sym+ta.value.substring(end);
+            ta.focus();
+        }
+    });
+    $('#addSymbolBtn').addEventListener('click', ()=>{
+        const sym = $('#newSymbolInput').value.trim();
+        if(sym && !settings.favSymbols.includes(sym)){
+            settings.favSymbols.push(sym); saveSettings(); renderSymbolPanel();
+        }
+    });
+    $('#dividerList').innerHTML = settings.dividers.map(d => `<div class="divider-preview insert-divider">${d}</div>`).join('');
+    $('#dividerList').addEventListener('click', (e)=>{
+        if(e.target.classList.contains('insert-divider')){
+            const ta = $('#templateText');
+            ta.value += '\n' + e.target.textContent;
+        }
+    });
+    let emojiRules = settings.emojiRules||[];
+    function renderEmojiRules() {
+        $('#emojiRulesList').innerHTML = emojiRules.map((r,i)=>`<span class="tag">${r.key}→${r.val} <span class="remove-emoji" data-idx="${i}">×</span></span>`).join('');
+    }
+    renderEmojiRules();
+    $('#addEmojiBtn').addEventListener('click', ()=>{
+        const key = $('#emojiKey').value.trim(), val = $('#emojiVal').value.trim();
+        if(key && val){ emojiRules.push({key, val}); renderEmojiRules(); }
+    });
+    $('#emojiRulesList').addEventListener('click', (e)=>{
+        if(e.target.classList.contains('remove-emoji')){
+            emojiRules.splice(parseInt(e.target.dataset.idx),1); renderEmojiRules();
+        }
+    });
+    $('#saveTemplateBtn').addEventListener('click', ()=>{
+        settings.template = $('#templateText').value;
+        settings.condUngrad = $('#condUngrad').checked;
+        settings.condPrice = $('#condPrice').checked;
+        settings.emojiRules = emojiRules;
+        saveSettings(); updatePreview(); addHistory('更新模板');
+    });
+    $('#exportTemplateBtn').addEventListener('click', ()=>{
+        const blob = new Blob([JSON.stringify({template:settings.template, emojiRules:settings.emojiRules}, null,2)], {type:'application/json'});
+        const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='光遇模板_ClementWong.json'; a.click();
+    });
+
+    // ===================== 导出设置 =====================
+    $('#expWidth').value = settings.expWidth;
+    $('#expHeight').value = settings.expHeight;
+    $('#bgType').value = settings.bgType;
+    $('#bgColor').value = settings.bgColor;
+    $('#bgFill').value = settings.bgFill||'contain';
+    $('#bgSideColor').value = settings.bgSideColor;
+    $('#bgFilter').value = settings.bgFilter;
+    $('#exportFormat').value = settings.exportFormat;
+    $('#jpegQuality').value = settings.jpegQuality;
+    $('#wmText').value = settings.wmText;
+    $('#wmFontSelect').value = settings.wmFont;
+    $('#wmColor').value = settings.wmColor;
+    $('#wmOpacity').value = settings.wmOpacity;
+    $('#wmSize').value = settings.wmSize;
+    $('#wmRotate').value = settings.wmRotate;
+    $('#wmMode').value = settings.wmMode;
+    $('#tileSpacing').value = settings.tileSpacing;
+    $('#customFontUrl').value = settings.customFontUrl;
+
+    function toggleExportUI() {
+        $('#bgColorRow').style.display = settings.bgType==='color'?'block':'none';
+        $('#bgImageRow').style.display = settings.bgType==='image'?'block':'none';
+        $('#jpegQualityRow').style.display = settings.exportFormat==='jpeg'?'block':'none';
+        $('#wmImageUpload').style.display = settings.wmMode==='image'?'block':'none';
+        $('#tileOptions').style.display = settings.wmMode==='tile'?'block':'none';
+    }
+    toggleExportUI();
+    $('#bgType').addEventListener('change', function(){ settings.bgType=this.value; toggleExportUI(); });
+    $('#exportFormat').addEventListener('change', function(){ settings.exportFormat=this.value; toggleExportUI(); });
+    $('#wmMode').addEventListener('change', function(){ settings.wmMode=this.value; toggleExportUI(); });
+    $('#bgFileInput').addEventListener('change', function(e){
+        const f=e.target.files[0];
+        if(f){ const r=new FileReader(); r.onload=ev=>{ settings.bgImage=ev.target.result; $('#bgPreview').style.backgroundImage=`url(${ev.target.result})`; }; r.readAsDataURL(f); }
+    });
+    $('#wmFileInput').addEventListener('change', function(e){
+        const f=e.target.files[0];
+        if(f){ const r=new FileReader(); r.onload=ev=>{ settings.wmImage=ev.target.result; }; r.readAsDataURL(f); }
+    });
+    $('#fontFileInput').addEventListener('change', function(e){
+        const f=e.target.files[0];
+        if(f){
+            const r=new FileReader();
+            r.onload=ev=>{
+                settings.uploadedFont = ev.target.result;
+                settings.uploadedFontName = 'UploadedFont_'+Date.now();
+                const font = new FontFace(settings.uploadedFontName, `url(${ev.target.result})`);
+                font.load().then(()=>document.fonts.add(font)).catch(()=>{});
+            };
+            r.readAsDataURL(f);
+        }
+    });
+    $('#saveExportSettingsBtn').addEventListener('click', ()=>{
+        settings.expWidth = parseInt($('#expWidth').value)||750;
+        settings.expHeight = parseInt($('#expHeight').value)||0;
+        settings.bgColor = $('#bgColor').value;
+        settings.bgFill = $('#bgFill').value;
+        settings.bgSideColor = $('#bgSideColor').value;
+        settings.bgFilter = $('#bgFilter').value;
+        settings.exportFormat = $('#exportFormat').value;
+        settings.jpegQuality = parseFloat($('#jpegQuality').value);
+        settings.wmText = $('#wmText').value;
+        settings.wmFont = $('#wmFontSelect').value;
+        settings.wmColor = $('#wmColor').value;
+        settings.wmOpacity = parseFloat($('#wmOpacity').value);
+        settings.wmSize = parseInt($('#wmSize').value)||22;
+        settings.wmRotate = parseInt($('#wmRotate').value)||0;
+        settings.wmMode = $('#wmMode').value;
+        settings.tileSpacing = parseInt($('#tileSpacing').value)||80;
+        settings.customFontUrl = $('#customFontUrl').value;
+        saveSettings(); addHistory('更新导出设置');
+    });
+
+    // ===================== 数据管理 =====================
+    $('#exportJsonBtn').addEventListener('click', ()=>{
+        const blob = new Blob([JSON.stringify({accounts, settings}, null,2)], {type:'application/json'});
+        const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='光遇数据备份.json'; a.click();
+    });
+    $('#importJsonBtn').addEventListener('click', ()=>$('#importJsonFile').click());
+    $('#importJsonFile').addEventListener('change', function(e){
+        const f=e.target.files[0];
+        if(!f) return;
+        const r=new FileReader();
+        r.onload=ev=>{
+            try{
+                const data=JSON.parse(ev.target.result);
+                if(data.accounts) accounts=data.accounts;
+                if(data.settings) Object.assign(settings, data.settings);
+                currentId=accounts[0]?.id;
+                saveAccounts(); saveSettings(); renderAccountList(); loadCurrentAccount();
+                alert('导入成功');
+            }catch{ alert('文件错误'); }
+        };
+        r.readAsText(f);
+    });
+    function addHistory(action){
+        history.unshift({time:new Date().toLocaleString(), action});
+        saveHistory(); renderHistory();
+    }
+    function renderHistory(){
+        $('#historyList').innerHTML = history.slice(0,30).map(h=>`<div>${h.time} - ${h.action}</div>`).join('');
+    }
+    renderHistory();
+
+    // ===================== 主题切换 =====================
+    $('#themeToggle').addEventListener('click', ()=>{
+        const themes=['dark','light','warm'];
+        const idx=themes.indexOf(settings.theme);
+        settings.theme = themes[(idx+1)%3];
+        document.body.className = settings.theme==='light'?'theme-light':(settings.theme==='warm'?'theme-warm':'');
+        saveSettings();
+    });
+    document.body.className = settings.theme==='light'?'theme-light':(settings.theme==='warm'?'theme-warm':'');
+
+    // ===================== 初始化 =====================
+    loadData();
+    renderAccountList();
+    if(accounts.length) loadCurrentAccount();
+    updatePreview();
+})();
+</script>
+</body>
+</html>
